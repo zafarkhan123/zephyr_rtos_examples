@@ -29,7 +29,13 @@ Demonstrates core STM32F3 Discovery peripherals using Zephyr RTOS:
 - UART serial output via `printk`
 - Interactive **Zephyr Shell CLI** for real-time hardware control
 
-On startup, the application runs a full peripheral test, then enters shell mode.
+On startup, the application runs a full peripheral test, then enters shell mode where all hardware can be controlled interactively via typed commands over UART.
+
+### CLI Implementation
+
+This example uses the **Zephyr Shell subsystem** (`zephyr/shell/shell.h`) to expose a command-line interface over UART. Commands are registered with `SHELL_CMD_REGISTER` and become available at the `uart:~$` prompt once the startup test sequence completes.
+
+To use the CLI, open a serial terminal connected to the ST-Link virtual COM port at **115200 baud** (see [Development Environment](#development-environment)), then type any of the commands listed below.
 
 ### Hardware
 
@@ -40,7 +46,7 @@ On startup, the application runs a full peripheral test, then enters shell mode.
 | Accelerometer | LSM303DLHC via I2C (alias: `accel0`) |
 | Magnetometer | LSM303DLHC via I2C (alias: `magn0`) |
 
-### Shell Commands
+### CLI Commands
 
 After startup, the Zephyr shell is available over UART (`uart:~$`):
 
@@ -167,7 +173,10 @@ Temperature: 24.5°C, Humidity: 65.4%
 
 - [Zephyr RTOS](https://zephyrproject.org/) with `west` build tool
 - ST-Link (onboard) for flashing and UART output
-- Serial terminal (e.g. PuTTY, minicom) at **115200 baud** for UART output
+- Serial terminal at **115200 baud** for UART output — options include:
+  - [PuTTY](https://www.putty.org/) (Windows/Linux)
+  - [Tera Term](https://teratermproject.github.io/) (Windows)
+  - minicom (Linux/macOS)
 
 ## Getting Started
 
