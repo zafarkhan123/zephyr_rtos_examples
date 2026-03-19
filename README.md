@@ -1,78 +1,182 @@
-This repository contains example programs successfully built and executed on the following STM32 development boards:
+# Zephyr RTOS Examples — STM32F3 Discovery
 
-STM32F3 Discovery (STM32F3DISCOVERY)
-STM32F401 Nucleo (NUCLEO-F401RE)
+This repository contains example programs built and verified on the **STM32F3 Discovery** board using Zephyr RTOS.
 
-The purpose of this repository is to provide working reference implementations for embedded development using STM32 microcontrollers.
+**Board:** STM32F3 Discovery (stm32f3_disco)
+**MCU:** STM32F303VCT6
+**RTOS:** Zephyr
 
-📌 Features
+---
 
-Verified working code on real hardware
-Modular and reusable project structure
-Easy to extend for custom applications
-Suitable for beginners and intermediate developers
+## Examples
 
-🛠 Hardware Used
-1. STM32F3 Discovery
-MCU: STM32F303VCT6
+| # | Folder | Description |
+|---|--------|-------------|
+| 1 | [`1_ledblink_and_buttonread`](#1-1_ledblink_and_buttonread) | LED chase, button read, onboard sensors, and interactive shell CLI |
+| 3 | [`3_DHT22`](#2-3_dht22) | DHT22 temperature and humidity sensor via bit-bang protocol |
 
-Onboard sensors (accelerometer, gyroscope, etc.)
+---
 
-Integrated ST-Link debugger
+## 1. `1_ledblink_and_buttonread`
 
-2. STM32F401 Nucleo
+### Overview
 
-MCU: STM32F401RE
+Demonstrates core STM32F3 Discovery peripherals using Zephyr RTOS:
 
-Arduino-compatible headers
+- Sequential LED chase pattern across 8 onboard LEDs (LD3–LD10)
+- User button state reading (SW0)
+- Onboard accelerometer (LSM303DLHC) and magnetometer readings
+- UART serial output via `printk`
+- Interactive **Zephyr Shell CLI** for real-time hardware control
 
-Integrated ST-Link debugger
+On startup, the application runs a full peripheral test, then enters shell mode.
 
-⚙️ Development Environment
+### Hardware
 
-📂 Project Structure
-├── STM32F3DISCOVERY/
-│   ├── Core/
-│   ├── Drivers/
-│   ├── Inc/
-│   ├── Src/
-│   └── README.md
-│
-├── NUCLEO-F401RE/
-│   ├── Core/
-│   ├── Drivers/
-│   ├── Inc/
-│   ├── Src/
-│   └── README.md
-│
-└── README.md
+| Peripheral | Detail |
+|------------|--------|
+| LEDs | LD3 (Red), LD4 (Blue), LD5 (Orange), LD6 (Green), LD7 (Green), LD8 (Orange), LD9 (Blue), LD10 (Red) |
+| Button | SW0 — user button |
+| Accelerometer | LSM303DLHC via I2C (alias: `accel0`) |
+| Magnetometer | LSM303DLHC via I2C (alias: `magn0`) |
 
-🚀 Getting Started
-1. Clone Repository
-git clone https://github.com/your-username/your-repo-name.git
+### Shell Commands
 
-2. Open Project
+After startup, the Zephyr shell is available over UART (`uart:~$`):
 
-3. Build & Flash
+**LED Control:**
 
-Select correct board configuration
+| Command | Description |
+|---------|-------------|
+| `led_on <num>` | Turn on LED 0–7 |
+| `led_off <num>` | Turn off LED 0–7 |
+| `led_blink <num> <times>` | Blink LED N times (500ms on/off) |
+| `led_all_on` | Turn all 8 LEDs on |
+| `led_all_off` | Turn all 8 LEDs off |
 
-Connect board via USB
+**Sensors & Input:**
 
-Click Build and then Run
+| Command | Description |
+|---------|-------------|
+| `button_status` | Check if user button is pressed |
+| `sensor_accel` | Read accelerometer X/Y/Z (m/s²) |
+| `sensor_magn` | Read magnetometer X/Y/Z (Gauss) |
+| `test_all` | Re-run the full peripheral test sequence |
 
-🔌 Example Programs
+### Build & Flash
 
-Some typical examples included:
+```bash
+cd 1_ledblink_and_buttonread
+west build -b stm32f3_disco
+west flash
+```
 
-🧪 Testing
+### Sample Output
 
-All programs have been:
-  Compiled without errors
-  Flashed successfully
+```
+STM32F3 Discovery - Testing Functions!
+Testing UART: Hello from STM32F3 Discovery Board!
+Testing LEDs...
+LED test completed.
+Testing button...
+Button is not pressed.
+Testing accelerometer...
+Accel X: 0.000000 m/s²
+Accel Y: 0.000000 m/s²
+Accel Z: 9.810000 m/s²
+Testing magnetometer...
+Magn X: 0.000000 Gauss
+Magn Y: 0.000000 Gauss
+Magn Z: 0.000000 Gauss
+Testing timer delay...
+Delay test passed.
+All tests completed.
+CLI is now available. Use shell commands to control LEDs and sensors.
 
-Verified on hardware
-📷 Optional (Add Images)
+uart:~$ led_on 0
+LED 0 turned on
+uart:~$ sensor_accel
+Accel X: 0.000000 m/s²
+Accel Y: 0.000000 m/s²
+Accel Z: 9.810000 m/s²
+```
 
-You can add board images here:
+---
 
+## 2. `3_DHT22`
+
+### Overview
+
+Reads temperature and humidity from a **DHT22** sensor connected to GPIO PA1 using a manual **bit-bang** implementation of the DHT22 single-wire protocol. Readings are printed to UART every 10 seconds from a dedicated high-priority Zephyr thread.
+
+Key implementation details:
+- Manual bit-bang: pulls data line LOW for 20ms to start, then reads 40-bit response
+- Interrupts are disabled during the read for precise microsecond timing
+- Checksum validation on every read
+- Dedicated Zephyr thread (priority 5) to prevent timing disruption
+
+### Hardware Setup
+
+**Wiring:**
+
+| DHT22 Pin | STM32F3 Discovery |
+|-----------|-------------------|
+| VCC | 3.3V |
+| DATA | PA1 (internal pull-up enabled) |
+| GND | GND |
+
+No external pull-up resistor is needed — the internal pull-up is configured in the device tree overlay (`stm32f3_disco.overlay`).
+
+**DHT22 Specs:**
+
+| Parameter | Value |
+|-----------|-------|
+| Temperature range | -40°C to 80°C |
+| Temperature accuracy | ±0.5°C |
+| Humidity range | 0% to 100% RH |
+| Humidity accuracy | ±2% RH |
+| Min sampling interval | 2 seconds |
+
+### Build & Flash
+
+```bash
+cd 3_DHT22
+west build -b stm32f3_disco
+west flash
+```
+
+### Sample Output
+
+```
+================================================
+DHT22 Sensor - Temperature & Humidity Monitor
+STM32F3 Discovery Board (PA1)
+================================================
+
+DHT22 sensor initialized on GPIO PA1
+Starting DHT22 reading thread (every 10 seconds)...
+
+Temperature: 24.5°C, Humidity: 65.3%
+Temperature: 24.6°C, Humidity: 65.1%
+Temperature: 24.5°C, Humidity: 65.4%
+```
+
+---
+
+## Development Environment
+
+- [Zephyr RTOS](https://zephyrproject.org/) with `west` build tool
+- ST-Link (onboard) for flashing and UART output
+- Serial terminal (e.g. PuTTY, minicom) at **115200 baud** for UART output
+
+## Getting Started
+
+```bash
+# Clone the repo
+git clone https://github.com/zafarkhan123/zephyr_rtos_examples.git
+
+# Navigate to an example and build
+cd zephyr_rtos_examples/1_ledblink_and_buttonread
+west build -b stm32f3_disco
+west flash
+```
