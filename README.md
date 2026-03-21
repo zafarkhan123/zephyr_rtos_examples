@@ -12,12 +12,54 @@ This repository contains example programs built and verified on the **STM32F3 Di
 
 | # | Folder | Description |
 |---|--------|-------------|
-| 1 | [`1_ledblink_and_buttonread`](#1-1_ledblink_and_buttonread) | LED chase, button read, onboard sensors, and interactive shell CLI |
-| 3 | [`3_DHT22`](#2-3_dht22) | DHT22 temperature and humidity sensor via bit-bang protocol |
+| 1 | [`1_LedBlink`](#1-1_ledblink) | Sequential LED color blink across 8 onboard LEDs |
+| 2 | [`2_ledblink_and_buttonread`](#2-2_ledblink_and_buttonread) | LED chase, button read, onboard sensors, and interactive shell CLI |
+| 3 | [`3_DHT22`](#3-3_dht22) | DHT22 temperature and humidity sensor via bit-bang protocol |
 
 ---
 
-## 1. `1_ledblink_and_buttonread`
+## 1. `1_LedBlink`
+
+### Overview
+
+A simple Zephyr RTOS application that blinks 8 onboard LEDs on the STM32F3 Discovery board in a sequential color pattern using the GPIO device tree API.
+
+- 8 LEDs controlled in 4 color pairs: Red, Blue, Green, Orange
+- Each color pair turns ON for **1500 ms** while all others remain OFF
+- Cycles continuously: Red → Blue → Green → Orange → repeat
+
+### LED Mapping
+
+| Color  | LED 1 Node Label | LED 2 Node Label |
+|--------|-----------------|-----------------|
+| Red    | red_led_3       | red_led_10      |
+| Orange | orange_led_5    | orange_led_8    |
+| Green  | green_led_7     | green_led_6     |
+| Blue   | blue_led_9      | blue_led_4      |
+
+### Build & Flash
+
+```bash
+cd 1_LedBlink
+west build -b stm32f3_disco
+west flash
+```
+
+### Sample Output
+
+No UART output. Observable behavior on the board:
+
+```
+[Red LEDs ON]    ... 1500 ms
+[Blue LEDs ON]   ... 1500 ms
+[Green LEDs ON]  ... 1500 ms
+[Orange LEDs ON] ... 1500 ms
+(repeats)
+```
+
+---
+
+## 2. `2_ledblink_and_buttonread`
 
 ### Overview
 
@@ -35,7 +77,7 @@ On startup, the application runs a full peripheral test, then enters shell mode 
 
 This example uses the **Zephyr Shell subsystem** (`zephyr/shell/shell.h`) to expose a command-line interface over UART. Commands are registered with `SHELL_CMD_REGISTER` and become available at the `uart:~$` prompt once the startup test sequence completes.
 
-To use the CLI, open a serial terminal connected to the ST-Link virtual COM port at **115200 baud** (see [Development Environment](#development-environment)), then type any of the commands listed below.
+To use the CLI, open a serial terminal connected to the ST-Link virtual COM port at **115200 baud**, then type any of the commands listed below.
 
 ### Hardware
 
@@ -56,7 +98,7 @@ After startup, the Zephyr shell is available over UART (`uart:~$`):
 |---------|-------------|
 | `led_on <num>` | Turn on LED 0–7 |
 | `led_off <num>` | Turn off LED 0–7 |
-| `led_blink <num> <times>` | Blink LED N times (500ms on/off) |
+| `led_blink <num> <times>` | Blink LED N times (500 ms on/off) |
 | `led_all_on` | Turn all 8 LEDs on |
 | `led_all_off` | Turn all 8 LEDs off |
 
@@ -72,7 +114,7 @@ After startup, the Zephyr shell is available over UART (`uart:~$`):
 ### Build & Flash
 
 ```bash
-cd 1_ledblink_and_buttonread
+cd 2_ledblink_and_buttonread
 west build -b stm32f3_disco
 west flash
 ```
@@ -109,14 +151,14 @@ Accel Z: 9.810000 m/s²
 
 ---
 
-## 2. `3_DHT22`
+## 3. `3_DHT22`
 
 ### Overview
 
 Reads temperature and humidity from a **DHT22** sensor connected to GPIO PA1 using a manual **bit-bang** implementation of the DHT22 single-wire protocol. Readings are printed to UART every 10 seconds from a dedicated high-priority Zephyr thread.
 
 Key implementation details:
-- Manual bit-bang: pulls data line LOW for 20ms to start, then reads 40-bit response
+- Manual bit-bang: pulls data line LOW for 20 ms to start, then reads 40-bit response
 - Interrupts are disabled during the read for precise microsecond timing
 - Checksum validation on every read
 - Dedicated Zephyr thread (priority 5) to prevent timing disruption
@@ -127,9 +169,9 @@ Key implementation details:
 
 | DHT22 Pin | STM32F3 Discovery |
 |-----------|-------------------|
-| VCC | 3.3V |
-| DATA | PA1 (internal pull-up enabled) |
-| GND | GND |
+| VCC       | 3.3V              |
+| DATA      | PA1 (internal pull-up enabled) |
+| GND       | GND               |
 
 No external pull-up resistor is needed — the internal pull-up is configured in the device tree overlay (`stm32f3_disco.overlay`).
 
@@ -185,7 +227,7 @@ Temperature: 24.5°C, Humidity: 65.4%
 git clone https://github.com/zafarkhan123/zephyr_rtos_examples.git
 
 # Navigate to an example and build
-cd zephyr_rtos_examples/1_ledblink_and_buttonread
+cd zephyr_rtos_examples/1_LedBlink
 west build -b stm32f3_disco
 west flash
 ```
